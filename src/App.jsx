@@ -116,6 +116,8 @@ export default function App() {
 		setMuted(!track.enabled)
 	}
 
+	console.log('SIGNALING:', import.meta.env.VITE_SIGNALING_URL)
+
 	return (
 		<div className='container'>
 			<div className='card'>
