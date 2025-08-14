@@ -118,6 +118,8 @@ export default function App() {
 
 	console.log('SIGNALING:', import.meta.env.VITE_SIGNALING_URL)
 
+	console.log('ICE_SERVERS:', ICE_SERVERS)
+
 	return (
 		<div className='container'>
 			<div className='card'>
