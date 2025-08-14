@@ -1,0 +1,71 @@
+:root {
+	--bg: #0b1020;
+	--panel: #12182b;
+	--text: #e7ecff;
+	--accent: #7aa2ff;
+	--ok: #38d39f;
+	--bad: #ff6b6b;
+}
+* {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	background: radial-gradient(1000px 600px at 70% 0%, #12182b 0%, #0b1020 60%);
+	color: var(--text);
+	font: 16px/1.4 Inter, system-ui, sans-serif;
+}
+.container {
+	max-width: 900px;
+	margin: 40px auto;
+	padding: 24px;
+}
+.card {
+	background: rgba(18, 24, 43, 0.7);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 16px;
+	padding: 20px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.row {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+input,
+button {
+	height: 40px;
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: #0f1426;
+	color: var(--text);
+	padding: 0 12px;
+}
+button {
+	cursor: pointer;
+}
+button.primary {
+	background: var(--accent);
+	border: none;
+	color: #0a0f20;
+}
+.badge {
+	font-size: 12px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: #0f1426;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.controls {
+	display: flex;
+	gap: 10px;
+	margin-top: 10px;
+}
+audio {
+	width: 100%;
+	margin-top: 10px;
+}
+.small {
+	opacity: 0.8;
+	font-size: 13px;
+}
