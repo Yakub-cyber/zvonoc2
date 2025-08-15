@@ -66,6 +66,16 @@ export default function App() {
 
 		setStatus('Создаю RTCPeerConnection...')
 		const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+		pc.onicegatheringstatechange = () =>
+			console.log('iceGatheringState:', pc.iceGatheringState)
+		pc.onconnectionstatechange = () =>
+			console.log('connectionState:', pc.connectionState)
+		pc.onsignalingstatechange = () =>
+			console.log('signalingState:', pc.signalingState)
+		pc.onicecandidateerror = e => console.warn('icecandidateerror:', e)
+		pc.oniceconnectionstatechange = () =>
+			console.log('iceConnectionState:', pc.iceConnectionState)
+
 		pcRef.current = pc
 
 		pc.ontrack = e => {
