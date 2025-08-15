@@ -1,24 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { createSignaling } from './lib/signaling'
 
+// Валидные STUN (без ?transport=udp)
 const ICE_SERVERS = [
 	{ urls: 'stun:stun.l.google.com:19302' },
-	{ urls: 'stun:global.stun.twilio.com:3478' }, // без ?transport=udp!
-	// по желанию:
+	{ urls: 'stun:global.stun.twilio.com:3478' },
+	// при желании:
 	// { urls: "stun:stun1.l.google.com:19302" },
 	// { urls: "stun:stun2.l.google.com:19302" },
 ]
 
-// Позволяет подставлять адрес сигналинга через ?sig= и/или из секрета VITE_SIGNALING_URL
-const urlSig = new URLSearchParams(location.search).get('sig')
+// Гибкий URL сигналинга: ?sig=... → localStorage → переменная сборки
+const params = new URLSearchParams(location.search)
+const urlSig = params.get('sig')
 const storedSig = localStorage.getItem('SIG_URL')
 const SIGNALING_URL = urlSig || storedSig || import.meta.env.VITE_SIGNALING_URL
 if (urlSig) localStorage.setItem('SIG_URL', urlSig)
 
+// Простейшая роль инициатора для анти‑глэр: ?init=1
+const isInitiator = params.get('init') === '1'
+
 export default function App() {
-	const [room, setRoom] = useState(
-		new URLSearchParams(location.search).get('room') || ''
-	)
+	const [room, setRoom] = useState(params.get('room') || '')
 	const [joined, setJoined] = useState(false)
 	const [muted, setMuted] = useState(false)
 	const [status, setStatus] = useState('idle')
@@ -75,14 +78,22 @@ export default function App() {
 
 		stream.getTracks().forEach(t => pc.addTrack(t, stream))
 
+		// Анти‑глэр + обработка сигналинга
 		sig.on(async msg => {
 			if (msg.type === 'offer') {
+				if (pc.signalingState !== 'stable') {
+					try {
+						await pc.setLocalDescription({ type: 'rollback' })
+					} catch {}
+				}
 				await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp))
 				const answer = await pc.createAnswer()
 				await pc.setLocalDescription(answer)
 				sig.send({ type: 'answer', sdp: pc.localDescription })
 			} else if (msg.type === 'answer') {
-				await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+				if (pc.signalingState === 'have-local-offer') {
+					await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp))
+				}
 			} else if (msg.type === 'candidate') {
 				try {
 					await pc.addIceCandidate(msg.candidate)
@@ -94,12 +105,15 @@ export default function App() {
 			}
 		})
 
-		const offer = await pc.createOffer({
-			offerToReceiveAudio: true,
-			offerToReceiveVideo: false,
-		})
-		await pc.setLocalDescription(offer)
-		sig.send({ type: 'offer', sdp: pc.localDescription })
+		// Оффер создаёт только инициатор
+		if (isInitiator) {
+			const offer = await pc.createOffer({
+				offerToReceiveAudio: true,
+				offerToReceiveVideo: false,
+			})
+			await pc.setLocalDescription(offer)
+			sig.send({ type: 'offer', sdp: pc.localDescription })
+		}
 
 		setJoined(true)
 		setStatus('Подключено')
