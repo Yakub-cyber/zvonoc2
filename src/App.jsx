@@ -3,8 +3,17 @@ import { createSignaling } from './lib/signaling'
 
 const ICE_SERVERS = [
 	{ urls: 'stun:stun.l.google.com:19302' },
-	{ urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
+	{ urls: 'stun:global.stun.twilio.com:3478' }, // без ?transport=udp!
+	// по желанию:
+	// { urls: "stun:stun1.l.google.com:19302" },
+	// { urls: "stun:stun2.l.google.com:19302" },
 ]
+
+// Позволяет подставлять адрес сигналинга через ?sig= и/или из секрета VITE_SIGNALING_URL
+const urlSig = new URLSearchParams(location.search).get('sig')
+const storedSig = localStorage.getItem('SIG_URL')
+const SIGNALING_URL = urlSig || storedSig || import.meta.env.VITE_SIGNALING_URL
+if (urlSig) localStorage.setItem('SIG_URL', urlSig)
 
 export default function App() {
 	const [room, setRoom] = useState(
@@ -33,6 +42,7 @@ export default function App() {
 			alert('Введите Room ID')
 			return
 		}
+
 		setStatus('Запрашиваю микрофон...')
 		const stream = await navigator.mediaDevices.getUserMedia({
 			audio: true,
@@ -42,9 +52,9 @@ export default function App() {
 		if (localRef.current) localRef.current.srcObject = stream
 
 		setStatus('Подключаю сигналинг...')
-		const signalingURL = import.meta.env.VITE_SIGNALING_URL
+		const signalingURL = SIGNALING_URL
 		if (!signalingURL) {
-			alert('Не задан VITE_SIGNALING_URL')
+			alert('Не задан адрес сигналинга')
 			return
 		}
 		const sig = createSignaling(signalingURL, room)
@@ -55,20 +65,16 @@ export default function App() {
 		const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
 		pcRef.current = pc
 
-		// входящий удалённый звук
 		pc.ontrack = e => {
 			if (remoteRef.current && e.streams[0])
 				remoteRef.current.srcObject = e.streams[0]
 		}
-		// отправляем ICE кандидаты
 		pc.onicecandidate = e => {
 			if (e.candidate) sig.send({ type: 'candidate', candidate: e.candidate })
 		}
 
-		// добавляем свой аудио‑трек
 		stream.getTracks().forEach(t => pc.addTrack(t, stream))
 
-		// обработка сигналинга
 		sig.on(async msg => {
 			if (msg.type === 'offer') {
 				await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp))
@@ -88,7 +94,6 @@ export default function App() {
 			}
 		})
 
-		// создаём оффер как «первый»
 		const offer = await pc.createOffer({
 			offerToReceiveAudio: true,
 			offerToReceiveVideo: false,
@@ -116,8 +121,7 @@ export default function App() {
 		setMuted(!track.enabled)
 	}
 
-	console.log('SIGNALING:', import.meta.env.VITE_SIGNALING_URL)
-
+	console.log('SIGNALING:', SIGNALING_URL)
 	console.log('ICE_SERVERS:', ICE_SERVERS)
 
 	return (
